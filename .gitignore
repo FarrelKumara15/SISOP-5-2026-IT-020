@@ -1,0 +1,18 @@
+# Build folders
+soal_1/build/
+soal_1/linux-6.1.1/
+soal_1/busybox-1.36.1/
+
+# Downloaded archives
+soal_1/linux-6.1.1.tar.xz
+soal_1/busybox-*.tar.bz2
+
+# Temporary files
+*.o
+*.ko
+*.cmd
+*.tmp
+*.log
+
+# Optional: ignore cache
+.cache/
