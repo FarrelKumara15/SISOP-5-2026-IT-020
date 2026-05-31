@@ -31,7 +31,6 @@ farewell_backup_[DDMMYYYY-HHMMSS].zip
 ```
 <br/>
 Fungsi tiap file: <br/>
-## Penjelasan Singkat Setiap File
 
 | File / Folder | Penjelasan                                                                                                                                                                                                                                       |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -45,19 +44,141 @@ Fungsi tiap file: <br/>
 | `osboot/`     | Folder output hasil build. Folder ini berisi kernel hasil compile, filesystem single-user, filesystem multi-user, ISO bootable, dan file backup.                                                                                                 |
 
 <br/>
+
 ### kernel.sh
 #### Fungsi utama:
+
 1. Mendownload Linux kernel versi 6.1.1.
 2. Mengekstrak source kernel.
 3. Mengatur konfigurasi kernel.
 4. Mengcompile kernel.
 5. Menyimpan hasil compile ke: osboot/bzImage
 
-```bash
 
+```bash
+KERNEL_VERSION="6.1.1" // Menentukan versi kernel yang digunakan.
+
+wget -c "$KERNEL_URL" -O "$KERNEL_TAR" // Mendownload source code kernel Linux.
+
+make olddefconfig // Menerapkan konfigurasi kernel dari file .config.
+
+make -j$(nproc) bzImage // Mengcompile kernel menggunakan seluruh core CPU yang tersedia.
+
+cp arch/x86/boot/bzImage "$OUT_DIR/bzImage" // Menyalin hasil compile ke folder osboot.
+```
+<br/>
+
+### single.sh
+#### Fungsi utama:
+File single.sh digunakan untuk membuat single-user filesystem berbasis BusyBox. <br/>
+
+Output akhirnya adalah: osboot/single.gz <br/>
+
+Filesystem ini hanya memiliki satu user: <br/>
+
+| User | Password |
+|------|----------|
+| root | root123  |
+
+<br/>
+
+```bash
+make CONFIG_PREFIX="$ROOTFS" install // Menginstall BusyBox ke root filesystem.
+
+mkdir -p bin dev proc sys etc tmp root // Membuat struktur direktori sesuai spesifikasi soal.
+
+ROOT_HASH="$(openssl passwd -6 root123)" // Membuat hash password user root.
+
+cat > "$ROOTFS/init" // Membuat file /init yang dijalankan pertama kali saat boot.
+
+// Mount filesystem penting agar sistem dapat berjalan.
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev 
+
+find . | cpio -o -H newc | gzip -9 > "$OUTPUT" // Mengubah root filesystem menjadi initramfs single.gz.
+```
+
+<br/>
+
+### multi.sh
+#### Fungsi utama:
+File multi.sh digunakan untuk membuat multi-user filesystem. <br/>
+
+Output akhirnya: osboot/multi.gz <br/>
+
+Filesystem ini memiliki beberapa user: <br/>
+
+| User | Password |
+|------|----------|
+| root | root123  |
+| henn | henn123  |
+| hann | hann123  |
+| viii | viii123  |
+| kids | kids123  |
+
+<br/>
+
+```bash
+cat > "$ROOTFS/etc/shadow" // Menyimpan password yang sudah di-hash.
+
+// Mengatur permission direktori sesuai spesifikasi soal.
+chmod 700 root
+chmod 1777 tmp
+
+/bin/su "$USERNAME" // Menjalankan shell sebagai user yang login sehingga permission benar-benar diterapkan.
+```
+
+<br/>
+
+### iso.sh
+#### Fungsi utama:
+File iso.sh digunakan untuk membuat ISO bootable. <br/>
+
+```bash
+// Menyalin kernel dan filesystem ke dalam ISO.
+cp "$BZIMAGE" "$ISO_DIR/boot/bzImage"
+cp "$SINGLE" "$ISO_DIR/boot/single.gz"
+cp "$MULTI" "$ISO_DIR/boot/multi.gz"
+
+cat > "$ISO_DIR/boot/grub/grub.cfg" // Membuat menu boot GRUB.
+
+// User dapat memilih filesystem yang akan dijalankan.
+Farewell Party - Single User Filesystem
+Farewell Party - Multi User Filesystem
+
+grub-mkrescue -o "$ISO" "$ISO_DIR" // Membuat file ISO bootable.
+```
+
+<br/>
+
+### qemu.sh
+#### Fungsi utama:
+File qemu.sh digunakan untuk menjalankan OS menggunakan QEMU. <br/>
+
+```bash
+./qemu.sh --single // Boot langsung ke single-user filesystem.
+
+./qemu.sh --multi // Boot langsung ke multi-user filesystem.
+
+./qemu.sh --all // Boot dari ISO dan memilih mode melalui GRUB.
+
+-netdev user,id=net0 -device e1000,netdev=net0 // Mengaktifkan jaringan agar OS dapat melakukan ping dan wget.
+```
+
+<br/>
+
+### backup.sh
+#### Fungsi utama:
+Digunakan untuk membackup seluruh hasil build
+
+```bash
+TIMESTAMP=$(date +%d%m%Y-%H%M%S) // Membuat timestamp sesuai format soal.
+
+zip farewell_backup_${TIMESTAMP}.zip // Membuat file backup ZIP.
 ```
 <br/>Jalankan Program: <br/>
-<img width="590" height="51" alt="2026-05-31 15:58:47" src="https://github.com/user-attachments/assets/7ba81b2f-36d3-4cf3-88a7-67c35f7eee4a" /> <br/><br/>
+<img width="590" height="5br1" alt="2026-05-31 15:58:47" src="https://github.com/user-attachments/assets/7ba81b2f-36d3-4cf3-88a7-67c35f7eee4a" /> <br/><br/>
 
 <img width="434" height="161" alt="2026-05-31 16:00:08" src="https://github.com/user-attachments/assets/ed61e461-5d7d-4593-a0de-c9684307d95e" /> <br/><br/>
 
@@ -76,7 +197,7 @@ ls -lh osboot/bzImage osboot/single.gz osboot/multi.gz osboot/farewell.iso
 
 <br/>
 
-Jalankan,
+#### Jalankan,
 
 ```bash
 ./qemu.sh --all
@@ -243,6 +364,10 @@ Setelah selesai jalankan,
 ```bash
 exit
 ```
+
+#### Backup
+<img width="702" height="353" alt="2026-05-31 17:38:42" src="https://github.com/user-attachments/assets/8cc52f47-76c2-4f04-925f-41cc3281011d" />
+
 
 
 
