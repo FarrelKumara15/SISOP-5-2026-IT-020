@@ -65,6 +65,7 @@ bb_disable() {
 bb_enable CONFIG_STATIC
 bb_enable CONFIG_ASH
 bb_enable CONFIG_SH_IS_ASH
+bb_disable CONFIG_ASH_JOB_CONTROL
 bb_enable CONFIG_MOUNT
 bb_enable CONFIG_UMOUNT
 bb_enable CONFIG_MKNOD
